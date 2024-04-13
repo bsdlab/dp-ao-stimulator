@@ -1,0 +1,8 @@
+[stream_to_query]
+stream = "control_signal"       # Values of the control_signal are directly written to the serial port, make sure the values are in the correct range for the arduino to be processed
+buffer_size_s = 0.5
+[stimulation]
+grace_period_ms = 0         # no stimulation comand is considered during the gp
+[ao_api]
+port = 8081               # The port at which to find your arduino (quickest way is to check with the arduino IDE)
+ip = '127.0.0.1'
