@@ -25,7 +25,7 @@ logger = get_logger("ao_stim")
 # Duration_sec
 # ReturnChannel
 # For a single stimulation pulse
-STIM_ON = "STARTSTIM|10272|0|-1|0.06|0|1|0.06|130|0.006|10273"
+STIM_ON = "STARTSTIM|10272|0|-1|0.36|0|1|0.36|130|0.006|10273"
 
 
 def init_lsl_outlet() -> pylsl.StreamOutlet:
@@ -72,6 +72,11 @@ def main(
 ):
     logger.setLevel(logger_level)
     config = tomllib.load(open("./configs/ao_stim_config.toml", "rb"))
+
+    # Connect to app first to start the streaming from ao-communication
+    ao_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    ao_sock.connect((config["ao_api"]["ip"], config["ao_api"]["port"]))
+
     sw = connect_stream_watcher(config)
 
     outlet = init_lsl_outlet()
@@ -79,12 +84,12 @@ def main(
     last_val = 0
 
     tlast = time.perf_counter_ns()
-    dt_us = 100  # for update polling
+    dt_us = 100
 
-    # for hardware trigger
+    # for hardware trigger - just for double checking
     triggerbox = serial.Serial(port="COM4")
-    ao_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ao_sock.connect((config["ao_api"]["ip"], config["ao_api"]["port"]))
+    imax = 255
+    i = 0
 
     try:
         while not stop_event.is_set() and triggerbox is not None:
@@ -109,8 +114,9 @@ def main(
                         outlet.push_sample([ival])
 
                         # Write and reset
-                        triggerbox.write([100])
+                        triggerbox.write([i])
                         triggerbox.write([0])
+                        i = (i + 1) % imax + 1
 
                         sw.n_new = 0
                         last_val = val
