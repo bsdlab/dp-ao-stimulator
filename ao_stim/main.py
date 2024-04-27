@@ -26,6 +26,7 @@ logger = get_logger("ao_stim")
 # ReturnChannel
 # For a single stimulation pulse
 STIM_ON = "STARTSTIM|10272|0|-1|0.36|0|1|0.36|130|0.006|10273"
+STIM_CONT = "STARTSTIM|10272|0|-0.1|0.36|0|0.1|0.36|130|200|10273"
 
 
 def init_lsl_outlet() -> pylsl.StreamOutlet:
@@ -87,12 +88,14 @@ def main(
     dt_us = 100
 
     # for hardware trigger - just for double checking
-    triggerbox = serial.Serial(port="COM4")
+    # triggerbox = serial.Serial(port="COM4")
     imax = 255
     i = 0
+    is_on = False
 
     try:
-        while not stop_event.is_set() and triggerbox is not None:
+        # while not stop_event.is_set() and triggerbox is not None:
+        while not stop_event.is_set():
             # limit the update rate
             if time.perf_counter_ns() - tlast > dt_us * 1e3:
                 preupdate = time.perf_counter_ns()
@@ -108,14 +111,22 @@ def main(
 
                     if val != last_val and len(val) == 1:
                         ival = int(val[0])
+
                         if ival > 127:
                             ao_sock.sendall(STIM_ON.encode())
+                            is_on = False
+
+                        # Have a continuous stimulation simulated when the control
+                        # signal is low again
+                        else:
+                            if not is_on:
+                                ao_sock.sendall(STIM_CONT.encode())
 
                         outlet.push_sample([ival])
 
                         # Write and reset
-                        triggerbox.write([i])
-                        triggerbox.write([0])
+                        # triggerbox.write([i])
+                        # triggerbox.write([0])
                         i = (i + 1) % imax + 1
 
                         sw.n_new = 0
@@ -124,7 +135,7 @@ def main(
 
                         sleep_s(dt_us * 1e-6 * 0.9)
     finally:
-        triggerbox.close()
+        # triggerbox.close()
         ao_sock.close()
 
 
