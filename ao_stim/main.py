@@ -113,14 +113,15 @@ def main(
                         ival = int(val[0])
 
                         if ival > 127:
+                            # Stim is configured to be just one pulse -> no need to turn off
                             ao_sock.sendall(STIM_ON.encode())
-                            is_on = False
+                            # is_on = False
 
                         # Have a continuous stimulation simulated when the control
                         # signal is low again
-                        else:
-                            if not is_on:
-                                ao_sock.sendall(STIM_CONT.encode())
+                        # else:
+                        #     if not is_on:
+                        #         ao_sock.sendall(STIM_CONT.encode())
 
                         outlet.push_sample([ival])
 
